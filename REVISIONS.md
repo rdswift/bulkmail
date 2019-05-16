@@ -1,5 +1,10 @@
 # Bulk Mail Revision History
 
+## Version 0.04 (2019-05-16)
+
+- Fixed bug that was preventing --cmd processing.
+- Add message encoding to allow unicode characters in the message body.
+
 ## Version 0.03 (2019-02-27)
 
 - Project moved to GitHub.
