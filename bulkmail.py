@@ -38,7 +38,7 @@ an external smtp account such as Gmail.
 """
 
 SCRIPT_NAME = 'Bulk Mail'
-SCRIPT_VERS = '0.03'
+SCRIPT_VERS = '0.04'
 SCRIPT_COPYRIGHT = '2019'
 SCRIPT_AUTHOR = 'Bob Swift'
 
@@ -402,7 +402,7 @@ def sendMessage(SETTINGS, msg_to, subject, msg_text, msg_html, count, count_err,
         if (SETTINGS['DISPLAY_LEVEL'] > 1):
             print("Failure")
         errorAndExit(114)
-    return_value = server.sendmail(SETTINGS['MAIL_FROM_ADDR'], [msg_to,], msg_full)
+    return_value = server.sendmail(SETTINGS['MAIL_FROM_ADDR'], [msg_to,], msg_full.encode('UTF-8'))
     if return_value:
         count_err += 1
     server.quit()
@@ -698,11 +698,11 @@ writeConsoleAndLog(3, "\nPlain Text Message Template:\n\n{0}\n\n{1}\n".format(te
 #   Begin the message processing   #
 ####################################
 
-writeConsoleAndLog(3, "\nProcessing Command: {0}\n\n{1}\n".format(args.command, '-' * 79,))
+writeConsoleAndLog(3, "\nProcessing Command: {0}\n\n{1}\n".format(args.cmd, '-' * 79,))
 
 count = 0
 count_err = 0
-if args.command == 'send':
+if args.cmd == 'send':
     # Sends the email message to the list of recipients from the CSV file
     count_max = len(addr_list)
     if confirmAction(SETTINGS, "You are about to send {0} message(s).".format(count_max,)):
