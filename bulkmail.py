@@ -38,7 +38,7 @@ an external smtp account such as Gmail.
 """
 
 SCRIPT_NAME = 'Bulk Mail'
-SCRIPT_VERS = '0.04'
+SCRIPT_VERS = '0.05'
 SCRIPT_COPYRIGHT = '2019'
 SCRIPT_AUTHOR = 'Bob Swift'
 
@@ -372,10 +372,10 @@ def sendMessage(SETTINGS, msg_to, subject, msg_text, msg_html, count, count_err,
 
     # Record the types of both parts - text/plain and text/html.
     part1 = Message()
-    part1.set_type('text/plain')
+    part1.set_type('text/plain; charset="UTF-8"')
     part1.set_payload(msg_text)
     part2 = Message()
-    part2.set_type('text/html')
+    part2.set_type('text/html; charset="UTF-8"')
     part2.set_payload(msg_html)
 
     # Attach parts into message container.

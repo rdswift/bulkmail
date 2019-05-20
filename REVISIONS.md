@@ -1,5 +1,9 @@
 # Bulk Mail Revision History
 
+## Version 0.05 (2019-05-20)
+
+- Send UTF-8 character set information to the mailer in the mime type to properly decode unicode text in message body.
+
 ## Version 0.04 (2019-05-16)
 
 - Fixed bug that was preventing --cmd processing.
