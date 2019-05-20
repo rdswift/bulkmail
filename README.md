@@ -1,4 +1,4 @@
-# Bulk Mail (v0.4)
+# Bulk Mail (v0.5)
 
 ## Overview
 
