@@ -15,4 +15,6 @@ This should be a list:
 - two
 - three
 
+Thanks to my friend Nicolás for suggesting I write something like this.
+
 That's all for now.
