@@ -1,5 +1,12 @@
 # Bulk Mail Revision History
 
+## Version 0.06 (2019-07-31)
+
+- Add a message header indicating the version of the program used.
+- Rename the example files so that they don't overwrite files modified by the user when a new version is unzipped.
+- Add footer to message showing it was sent using the Python Bulk Email script.  This can be disabled through a setting in the configuration file or by including the --no-footer command-line option.
+- Fix typo on --addr-file command line argument.
+
 ## Version 0.05 (2019-05-20)
 
 - Send UTF-8 character set information to the mailer in the mime type to properly decode unicode text in message body.

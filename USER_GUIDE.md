@@ -1,4 +1,4 @@
-# Bulk Mail (v0.3)
+# Bulk Mail (v0.6)
 
 ## Overview
 
@@ -65,6 +65,7 @@ Configuration file settings include:
 - **SEND_REPLY**: Determines whether or not to include the specified Reply-To: address with each message.
 - **ADDRESS_TEMPLATE**: The template used to format each entry in the CSV file into an address used as the destination address for a message.  (e.g.: `{first_name} {last_name} <{email}>`)
 - **NO_CONFIRM**: Determines whether or not to ask for confirmation to continue after a warning or before sending any email messages.
+- **NO_FOOTER**: Determines whether or not to include a footer on the message showing the version of the Python Bulk Mail script used.
 - **LOG_FILE**: The file to use for logging processing activity.  This file will be created if it doesn't exist, and subsequent process runs will append to the file.
 - **LOG_LEVEL**: Specifies the amount of information to include in the log file, as:
   - 0 = no logging
@@ -96,7 +97,7 @@ The options available include:
 
 - **-a,--confirm**: Request confirmation on actions or warnings.
 - **-A, --no-confirm**: Don't request confirmation on actions or warnings.
-- **--addr_file FILE**: The file containing a list of destination addresses in CSV format with the first row containing the column names.
+- **--addr-file FILE**: The file containing a list of destination addresses in CSV format with the first row containing the column names.
 - **--config-file FILE**: The file containing the configuration information.  Defaults to bulkmail.cfg in the current directory.
 - **--display-level LEVEL**: The amount of information to write to the display.  0=no display (also implies -A) to 3=display everything (debug)
 - **--email TEMPLATE**: Set the template to use to build the destination email addresses from the fields in the CSV file. (e.g.: `'{first_name} {last_name} <{email}>'`)
@@ -104,6 +105,7 @@ The options available include:
 - **--log-file FILE**: The file to write the session logs.  Defaults to bulkmail.log in the current directory.
 - **--log-level LEVEL**: The amount of information to write to the log file.  0=no logging; 1=errors; 2=normal; 3=debug; 4=everything (extreme debug)
 - **--message FILE**: The file containing the message (in markdown format) to send. The first line contains the message subject formatted as a Header 1. (e.g.: `# This is the Subject`)
+- **--no-footer**: Do not include a footer in the message indicating the version of the Python Bulk Mail script used.
 - **-r, --send-reply**: Include the Reply-To address in all messages sent.
 - **-R, --no-reply**: Do not include the Reply-To address.
 - **--reply ADDRESS**: Set the Reply-To: address.  (e.g.: `'No Spam <nospam@nospam.com>'`)
@@ -161,6 +163,8 @@ This should be a list:
 - one
 - two
 - three
+
+Thanks to my friend Nicolás for suggesting I write something like this.
 
 That's all for now.
 ```
