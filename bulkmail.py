@@ -38,9 +38,10 @@ an external smtp account such as Gmail.
 """
 
 SCRIPT_NAME = 'Bulk Mail'
-SCRIPT_VERS = '0.05'
+SCRIPT_VERS = '0.06'
 SCRIPT_COPYRIGHT = '2019'
 SCRIPT_AUTHOR = 'Bob Swift'
+SCRIPT_URL = 'https://rdswift.github.io/bulkmail/'
 
 
 import argparse
@@ -134,6 +135,7 @@ SETTINGS = {
     'LOG_FILE': 'bulkmail.log',
     'LOG_LEVEL': 2,
     'DISPLAY_LEVEL': 2,
+    'NO_FOOTER': False,
 }
 
 
@@ -361,6 +363,9 @@ def sendMessage(SETTINGS, msg_to, subject, msg_text, msg_html, count, count_err,
         count_err {int} -- the number of messages that were not sent successfully
         count_max {int} -- the total number of messages to be sent
     """
+    if not SETTINGS['NO_FOOTER']:
+        msg_text += "\n---\nSent using the Python {0} (v{1}) script.  {2}".format(SCRIPT_NAME, SCRIPT_VERS, SCRIPT_URL)
+        msg_html += "\n<p><hr>\n<span style='font-size: 80%;'>Sent using the Python {0} (v{1}) script.  <a href=\"{2}\" target=\"_blank\">{2}</a></span></p>".format(SCRIPT_NAME, SCRIPT_VERS, SCRIPT_URL)
     message = MIMEMultipart('alternative')
     message['From'] = SETTINGS['MAIL_FROM_ADDR']
     if (SETTINGS['SEND_REPLY']) and (SETTINGS['MAIL_REPLY_ADDR']):
@@ -369,6 +374,7 @@ def sendMessage(SETTINGS, msg_to, subject, msg_text, msg_html, count, count_err,
     # message['Cc'] = 'Receiver2 Name <receiver2@server>'    # Assume you don't want to Cc: or Bcc: a mass mailing
     # message['Bcc'] = 'Receiver3 Name <receiver3@server>'   # Assume you don't want to Cc: or Bcc: a mass mailing
     message['Subject'] = subject
+    message['X-Mailer'] = 'Python/{0} (v{1})'.format(SCRIPT_NAME, SCRIPT_VERS)
 
     # Record the types of both parts - text/plain and text/html.
     part1 = Message()
@@ -427,10 +433,10 @@ arg_parser = argparse.ArgumentParser(description="{0} (v{1})\nSends the same ema
     usage="'bulkmail.py --help'  or  'bulkmail.py -c command [options]'"
 )
 arg_parser.add_argument("-c", "--cmd", help="The processing command 'send' or 'test'.", metavar='CMD', choices=['send', 'test',])
-group4 = arg_parser.add_mutually_exclusive_group()
-group4.add_argument("-a", "--confirm", help="Request confirmation on actions or warnings.", action='store_true')
-group4.add_argument("-A", "--no-confirm", help="Don't request confirmation on actions or warnings.", action='store_true')
-arg_parser.add_argument("--addr_file", help="The file containing a list of destination addresses in CSV format with the first row containing the column names.",
+group0 = arg_parser.add_mutually_exclusive_group()
+group0.add_argument("-a", "--confirm", help="Request confirmation on actions or warnings.", action='store_true')
+group0.add_argument("-A", "--no-confirm", help="Don't request confirmation on actions or warnings.", action='store_true')
+arg_parser.add_argument("--addr-file", help="The file containing a list of destination addresses in CSV format with the first row containing the column names.",
     metavar='FILE', dest='MAIL_ADDRESS_FILE')
 # group1 = arg_parser.add_mutually_exclusive_group()
 # group1.add_argument("-b", "--send-bcc", help="Include the Bcc: address(es).", action='store_true')
@@ -449,11 +455,14 @@ arg_parser.add_argument("--email", help="Set the template to use to build the de
 arg_parser.add_argument("--from", help="Set the From: address.", metavar='ADDR', dest='MAIL_FROM_ADDR')
 arg_parser.add_argument("--log-file", help="The file to write the session logs.  Defaults to bulkmail.log in the current directory.",
     metavar='FILE', dest='LOG_FILE')
-arg_parser.add_argument("--log-level", help="The amount of information to write to the log file.  0=no logging to 4=log everything (extreme debug)", 
+arg_parser.add_argument("--log-level", help="The amount of information to write to the log file.  0=no logging to 4=log everything (extreme debug)",
     metavar='NUM', choices=['0', '1', '2', '3', '4',], dest='LOG_LEVEL')
 arg_parser.add_argument("--message", help="The file containing the message (in markdown format) to send.  " +
     "The first line contains the message subject formatted as a Header 1. (e.g.: # This is the Subject)",
     metavar='FILE', dest='MAIL_MESSAGE_FILE')
+group3 = arg_parser.add_mutually_exclusive_group()
+group3.add_argument("-f", "--footer", help="Include a footer on the message showing the program used.", action='store_true')
+group3.add_argument("-F", "--no-footer", help="Don't include a footer on the message showing the program used.", action='store_true')
 group4 = arg_parser.add_mutually_exclusive_group()
 group4.add_argument("-r", "--send-reply", help="Include the Reply-To address.", action='store_true')
 group4.add_argument("-R", "--no-reply", help="Do not include the Reply-To address.", action='store_true')
@@ -517,17 +526,20 @@ for arg in vars(args):
 if args.send_reply:
     SETTINGS['SEND_REPLY'] = True
 
+if args.no_reply:
+    SETTINGS['SEND_REPLY'] = False
+
 if args.confirm:
     SETTINGS['NO_CONFIRM'] = False
 
 if args.no_confirm:
     SETTINGS['NO_CONFIRM'] = True
 
-if args.no_reply:
-    SETTINGS['SEND_REPLY'] = False
+if args.footer:
+    SETTINGS['NO_FOOTER'] = False
 
-if args.no_confirm:
-    SETTINGS['SEND_REPLY'] = False
+if args.no_footer:
+    SETTINGS['NO_FOOTER'] = True
 
 
 #################################
