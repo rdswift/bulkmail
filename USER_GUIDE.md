@@ -105,7 +105,8 @@ The options available include:
 - **--log-file FILE**: The file to write the session logs.  Defaults to bulkmail.log in the current directory.
 - **--log-level LEVEL**: The amount of information to write to the log file.  0=no logging; 1=errors; 2=normal; 3=debug; 4=everything (extreme debug)
 - **--message FILE**: The file containing the message (in markdown format) to send. The first line contains the message subject formatted as a Header 1. (e.g.: `# This is the Subject`)
-- **--no-footer**: Do not include a footer in the message indicating the version of the Python Bulk Mail script used.
+- **-f, --footer**: Include a footer in the message indicating the version of the Python Bulk Mail script used.
+- **-F, --no-footer**: Do not include a footer in the message indicating the version of the Python Bulk Mail script used.
 - **-r, --send-reply**: Include the Reply-To address in all messages sent.
 - **-R, --no-reply**: Do not include the Reply-To address.
 - **--reply ADDRESS**: Set the Reply-To: address.  (e.g.: `'No Spam <nospam@nospam.com>'`)
