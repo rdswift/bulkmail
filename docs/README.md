@@ -38,7 +38,7 @@ Although functional, this script is far from complete or polished.  It has not b
 PEP8 compliance, and has not been optimized.  The intent so far has been to make it available
 quickly for immediate use, and follow up with additional features, optimization and PEP8 review.
 
-Improvement suggestiona and bug reports are greatly appreciated, and can be reported in
+Improvement suggestions and bug reports are greatly appreciated, and can be reported in
 the [Issues](https://github.com/rdswift/bulkmail/issues) section of the
 [GitHub repository](https://github.com/rdswift/bulkmail).  Thanks.
 

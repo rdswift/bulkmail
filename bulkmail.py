@@ -2,7 +2,7 @@
 ##############################################################################
 #                                                                            #
 #   Bulk Mail - A bulk mail / mail merge system using Python 3               #
-#   Copyright (C) 2019 Bob Swift (rdswift)                                   #
+#   Copyright (C) 2019, 2024 Bob Swift (rdswift)                             #
 #                                                                            #
 #   This program is free software: you can redistribute it and/or modify     #
 #   it under the terms of the GNU General Public License as published by     #
@@ -38,8 +38,8 @@ an external smtp account such as Gmail.
 """
 
 SCRIPT_NAME = 'Bulk Mail'
-SCRIPT_VERS = '0.06'
-SCRIPT_COPYRIGHT = '2019'
+SCRIPT_VERS = '0.07'
+SCRIPT_COPYRIGHT = '2024'
 SCRIPT_AUTHOR = 'Bob Swift'
 SCRIPT_URL = 'https://rdswift.github.io/bulkmail/'
 
@@ -53,12 +53,14 @@ import smtplib
 import textwrap
 import time
 from email.message import Message
-from email.mime.message import MIMEMessage
+# from email.mime.message import MIMEMessage
 from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+# from email.mime.text import MIMEText
 
 import commonmark
 import html2text
+
+DASH_LINE = '-' * 79
 
 ########################################
 #   Error messages and return values   #
@@ -115,36 +117,28 @@ RE_TEXT_LINKS = re.compile(r'\[([^\]]*)\]\(<([^>]*)>\)')
 #######################################################
 
 # TODO: enable Cc: and Bcc: addresses
-SETTINGS = {
-    'MAIL_SERV': 'smtp.gmail.com',
-    'MAIL_PORT': 587,
-    'MAIL_SERV_LOGON_ID': '',
-    'MAIL_SERV_LOGON_PW': '',
-    'MAIL_WAIT': 1,
-    'MAIL_FROM_ADDR': '',
-    'MAIL_REPLY_ADDR': '',
-    #'MAIL_CC_ADDR': [],
-    #'MAIL_BCC_ADDR': [],
-    'MAIL_ADDRESS_FILE': '',
-    'MAIL_MESSAGE_FILE': '',
-    #'SEND_CC': False,
-    #'SEND_BCC': False,
-    'SEND_REPLY': False,
-    'ADDRESS_TEMPLATE': '',
-    'NO_CONFIRM': False,
-    'LOG_FILE': 'bulkmail.log',
-    'LOG_LEVEL': 2,
-    'DISPLAY_LEVEL': 2,
-    'NO_FOOTER': False,
-}
-
-
-################################################################
-#   Temporary flag to prevent trying to write error messages   #
-#   to the log file during script initialization.              #
-################################################################
-
-INITIALIZING = True
+# SETTINGS = {
+#     'MAIL_SERV': 'smtp.gmail.com',
+#     'MAIL_PORT': 587,
+#     'MAIL_SERV_LOGON_ID': '',
+#     'MAIL_SERV_LOGON_PW': '',
+#     'MAIL_WAIT': 1,
+#     'MAIL_FROM_ADDR': '',
+#     'MAIL_REPLY_ADDR': '',
+#     # 'MAIL_CC_ADDR': [],
+#     # 'MAIL_BCC_ADDR': [],
+#     'MAIL_ADDRESS_FILE': '',
+#     'MAIL_MESSAGE_FILE': '',
+#     # 'SEND_CC': False,
+#     # 'SEND_BCC': False,
+#     'SEND_REPLY': False,
+#     'ADDRESS_TEMPLATE': '',
+#     'NO_CONFIRM': False,
+#     'LOG_FILE': 'bulkmail.log',
+#     'LOG_LEVEL': 2,
+#     'DISPLAY_LEVEL': 2,
+#     'NO_FOOTER': False,
+# }
 
 
 #########################################################
@@ -184,13 +178,13 @@ return for a fee.
 #   Text to display when the script is started   #
 ##################################################
 
-COPYRIGHT_TEXT = """
-{0} (v{1})  Copyright (C) {2}  {3}
+COPYRIGHT_TEXT = f"""
+{SCRIPT_NAME} (v{SCRIPT_VERS})  Copyright (C) {SCRIPT_COPYRIGHT}  {SCRIPT_AUTHOR}
 This program comes with ABSOLUTELY NO WARRANTY; for details use option
 '--warranty'.  This is free software, and you are welcome to redistribute
 it under certain conditions.  Please see the GPLv3 license for details.
 
-""".format(SCRIPT_NAME, SCRIPT_VERS, SCRIPT_COPYRIGHT, SCRIPT_AUTHOR,)
+"""
 
 
 ###############################################################
@@ -199,6 +193,77 @@ it under certain conditions.  Please see the GPLv3 license for details.
 
 REDISTRIBUTION_TEXT = '''\
 '''
+
+
+class Settings():
+    MAIL_SERV = 'smtp.gmail.com'
+    MAIL_PORT = 587
+    MAIL_SERV_LOGON_ID = ''
+    MAIL_SERV_LOGON_PW = ''
+    MAIL_WAIT = 1
+    MAIL_FROM_ADDR = ''
+    MAIL_REPLY_ADDR = ''
+    # MAIL_CC_ADDR = []
+    # MAIL_BCC_ADDR = []
+    MAIL_ADDRESS_FILE = ''
+    MAIL_MESSAGE_FILE = ''
+    # SEND_CC = False
+    # SEND_BCC = False
+    SEND_REPLY = False
+    ADDRESS_TEMPLATE = ''
+    NO_CONFIRM = False
+    LOG_FILE = 'bulkmail.log'
+    LOG_LEVEL = 2
+    DISPLAY_LEVEL = 2
+    NO_FOOTER = False
+
+
+class Writer():
+
+    INITIALIZING = True
+
+    @classmethod
+    def Log(cls, level, text):
+        """Write an entry to the log file if the entry level is less than or equal to the log level.
+
+        Arguments:
+            level {int} -- the minimum log level to write the entry
+            text {str} -- the entry to add to the log
+        """
+        if cls.INITIALIZING or level > Settings.LOG_LEVEL:
+            return
+        try:
+            lines = text.split("\n")
+            with open(Settings.LOG_FILE, 'a', encoding='UTF-8') as f:
+                for line in lines:
+                    f.write(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  {line}".strip() + "\n")
+        except Exception:
+            errorNumber = 118
+            cls.Console(1, f"\n{ERRORS[errorNumber]} Filename: '{Settings.LOG_FILE}'\n")
+            quit(errorNumber)
+
+    @staticmethod
+    def Console(level, text):
+        """Write an entry to the console.
+
+        Arguments:
+            level {int} -- the minimum display level to write the entry
+            text {str} -- the entry to write to the console
+        """
+        if level > Settings.DISPLAY_LEVEL or Settings.DISPLAY_LEVEL < 1:
+            return
+        print(text)
+
+    @classmethod
+    def ConsoleAndLog(cls, level, text):
+        """Write an entry to both the console and the log file.
+
+        Arguments:
+            level {int} -- the minimum display / log level to write the entry
+            text {str} -- the entry to write
+        """
+        cls.Console(level, text)
+        cls.Log(level, text)
 
 
 #########################################
@@ -222,72 +287,67 @@ def errorAndExit(errNumber, errorText="", extraText=""):
             errorText = "Unknown error."
     if extraText:
         errorText += ' ' + extraText
-    writeConsole(1, errorText)
-    writeLog(1, errorText)
+    Writer.ConsoleAndLog(1, errorText)
     quit(errNumber)
 
 
-###############################
-#   Write entry to log file   #
-###############################
+# def writeLog(level, text):
+#     """Write an entry to the log file if the entry level is less than or equal to the log level.
 
-def writeLog(level, text):
-    """Write an entry to the log file if the entry level is less than or equal to the log level.
-
-    Arguments:
-        level {int} -- the minimum log level to write the entry
-        text {str} -- the entry to add to the log
-    """
-    if (level > SETTINGS['LOG_LEVEL']) or INITIALIZING:
-        return
-    try:
-        lines = text.split("\n")
-        with open(SETTINGS['LOG_FILE'], 'a', encoding='UTF-8') as f:
-            for line in lines:
-                f.write("{0}  {1}\n".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), line,))
-    except Exception:
-        errorNumber = 118
-        writeConsole(1, "\n{0} Filename: '{1}'\n".format(ERRORS[errorNumber], SETTINGS['LOG_FILE'],))
-        quit(errorNumber)
+#     Arguments:
+#         level {int} -- the minimum log level to write the entry
+#         text {str} -- the entry to add to the log
+#     """
+#     if (level > SETTINGS['LOG_LEVEL']) or INITIALIZING:
+#         return
+#     try:
+#         lines = text.split("\n")
+#         with open(SETTINGS['LOG_FILE'], 'a', encoding='UTF-8') as f:
+#             for line in lines:
+#                 f.write(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  {line}".strip() + "\n")
+#     except Exception:
+#         errorNumber = 118
+#         writeConsole(1, f"\n{ERRORS[errorNumber]} Filename: '{SETTINGS['LOG_FILE']}'\n")
+#         quit(errorNumber)
 
 
 #################################
 #   Write line to the console   #
 #################################
 
-def writeConsole(level, text):
-    """Write an entry to the console.
+# def writeConsole(level, text):
+#     """Write an entry to the console.
 
-    Arguments:
-        level {int} -- the minimum display level to write the entry
-        text {str} -- the entry to write to the console
-    """
-    if (level > SETTINGS['DISPLAY_LEVEL']):
-        return
-    if (SETTINGS['DISPLAY_LEVEL'] > 0):
-        print(text)
+#     Arguments:
+#         level {int} -- the minimum display level to write the entry
+#         text {str} -- the entry to write to the console
+#     """
+#     if (level > SETTINGS['DISPLAY_LEVEL']):
+#         return
+#     if (SETTINGS['DISPLAY_LEVEL'] > 0):
+#         print(text)
 
 
 ##################################################
 #   Write to both the console and the log file   #
 ##################################################
 
-def writeConsoleAndLog(level, text):
-    """Write an entry to both the console and the log file.
+# def writeConsoleAndLog(level, text):
+#     """Write an entry to both the console and the log file.
 
-    Arguments:
-        level {int} -- the minimum display / log level to write the entry
-        text {str} -- the entry to write
-    """
-    writeConsole(level, text)
-    writeLog(level, text)
+#     Arguments:
+#         level {int} -- the minimum display / log level to write the entry
+#         text {str} -- the entry to write
+#     """
+#     writeConsole(level, text)
+#     writeLog(level, text)
 
 
 ##################################
 #   Check and save the setting   #
 ##################################
 
-def saveSetting(setting_list, key, value, from_config_file=False):
+def saveSetting(key, value, from_config_file=False):
     """Save an entry to the settings dictionary.
 
     Arguments:
@@ -299,58 +359,63 @@ def saveSetting(setting_list, key, value, from_config_file=False):
         from_config_file {bool} -- flag to indicate whether the update is from the configuration file (default: False)
     """
     key = key.strip().upper()
-    value = "{0}".format(value,).strip()
-    if key in setting_list:
-        setting_type = type(setting_list[key])
+    value = f"{value}".strip()
+    if hasattr(Settings, key):
+        setting_type = type(getattr(Settings, key))
         if setting_type == bool:
-            setting_list[key] = (value.strip().upper() == 'TRUE')
+            # setting_list[key] = (value.strip().upper() == 'TRUE')
+            setattr(Settings, key, (value.strip().upper() == 'TRUE'))
         elif setting_type == int:
+            value = value.split()[0]
             try:
                 iValue = int(value)
-                if ((key == 'MAIL_WAIT') and (iValue < 0)) or \
-                        ((key == 'LOG_LEVEL') and ((iValue < 1) or (iValue > 4))) or \
-                        ((key == 'DISPLAY_LEVEL') and ((iValue < 1) or (iValue > 3))) or \
-                        ((key == 'MAIL_PORT') and ((iValue < 1) or (iValue > 65535))):
+                if (key == 'MAIL_WAIT' and iValue < 0) or \
+                        (key == 'LOG_LEVEL' and (iValue < 1 or iValue > 4)) or \
+                        (key == 'DISPLAY_LEVEL' and (iValue < 1 or iValue > 3)) or \
+                        (key == 'MAIL_PORT' and (iValue < 1 or iValue > 65535)):
                     raise ValueError
-                setting_list[key] = iValue
+                # setting_list[key] = iValue
+                setattr(Settings, key, iValue)
             except ValueError:
-                errorAndExit(103 if from_config_file else 104, extraText="Setting: {0} = '{1}'".format(key, value,))
-        elif (setting_type == list) and (value):
-            setting_list[key].append(value)
+                errorAndExit(103 if from_config_file else 104, extraText=f"Setting: {key} = '{value}'")
+        elif value and setting_type == list:
+            setting_list = getattr(Settings, key)
+            setting_list.append(value)
+            setattr(Settings, key, setting_list)
         else:
-            setting_list[key] = value
+            # setting_list[key] = value
+            setattr(Settings, key, value)
     else:
         if from_config_file:
-            errorAndExit(102, extraText="Setting: '{0}'".format(key,))
+            errorAndExit(102, extraText=f"Setting: '{key}'")
 
 
 #########################
 #   Confirm an action   #
 #########################
 
-def confirmAction(SETTINGS, action_message):
+def confirmAction(action_message):
     """Ask the user to confirm the specified action or condition.
 
     Arguments:
         SETTINGS {dict} -- the dictionary containing the program settings
         action_message {str} -- the action or condition to comfirm
     """
-    if (SETTINGS['NO_CONFIRM']) or (SETTINGS['DISPLAY_LEVEL'] < 1):
+    if Settings.NO_CONFIRM or Settings.DISPLAY_LEVEL < 1:
         return True
-    else:
-        resp = input("\n{0}  Continue?  (y/N) ".format(action_message,))
-        resp = ((resp) and (resp[:1] in ['y', 'Y']))
-        if not resp:
-            writeConsoleAndLog(2, "\nCancelled by the user.\n")
-            quit(0)
-        return resp
+    resp = input(f"\n{action_message}  Continue?  (y/N) ")
+    resp = (resp and resp[:1].upper() == 'Y')
+    if not resp:
+        Writer.ConsoleAndLog(2, "\nCancelled by the user.\n")
+        quit(0)
+    return True
 
 
 #############################
 #   Send an email message   #
 #############################
 
-def sendMessage(SETTINGS, msg_to, subject, msg_text, msg_html, count, count_err, count_max):
+def sendMessage(msg_to, subject, msg_text, msg_html, count, count_err, count_max):
     """Assemble the message and send it using the server, port and credentials specified in the settings.
 
     Arguments:
@@ -363,18 +428,18 @@ def sendMessage(SETTINGS, msg_to, subject, msg_text, msg_html, count, count_err,
         count_err {int} -- the number of messages that were not sent successfully
         count_max {int} -- the total number of messages to be sent
     """
-    if not SETTINGS['NO_FOOTER']:
-        msg_text += "\n---\nSent using the Python {0} (v{1}) script.  {2}".format(SCRIPT_NAME, SCRIPT_VERS, SCRIPT_URL)
-        msg_html += "\n<p><hr>\n<span style='font-size: 80%;'>Sent using the Python {0} (v{1}) script.  <a href=\"{2}\" target=\"_blank\">{2}</a></span></p>".format(SCRIPT_NAME, SCRIPT_VERS, SCRIPT_URL)
+    if not Settings.NO_FOOTER:
+        msg_text += f"\n---\nSent using the Python {SCRIPT_NAME} (v{SCRIPT_VERS}) script.  {SCRIPT_URL}"
+        msg_html += f"\n<p><hr>\n<span style='font-size: 80%;'>Sent using the Python {SCRIPT_NAME} (v{SCRIPT_VERS}) script.  <a href=\"{SCRIPT_URL}\" target=\"_blank\">{SCRIPT_URL}</a></span></p>"
     message = MIMEMultipart('alternative')
-    message['From'] = SETTINGS['MAIL_FROM_ADDR']
-    if (SETTINGS['SEND_REPLY']) and (SETTINGS['MAIL_REPLY_ADDR']):
-        message['Reply-to'] = SETTINGS['MAIL_REPLY_ADDR']
+    message['From'] = Settings.MAIL_FROM_ADDR
+    if Settings.SEND_REPLY and Settings.MAIL_REPLY_ADDR:
+        message['Reply-to'] = Settings.MAIL_REPLY_ADDR
     message['To'] = msg_to
     # message['Cc'] = 'Receiver2 Name <receiver2@server>'    # Assume you don't want to Cc: or Bcc: a mass mailing
     # message['Bcc'] = 'Receiver3 Name <receiver3@server>'   # Assume you don't want to Cc: or Bcc: a mass mailing
     message['Subject'] = subject
-    message['X-Mailer'] = 'Python/{0} (v{1})'.format(SCRIPT_NAME, SCRIPT_VERS)
+    message['X-Mailer'] = f'Python/{SCRIPT_NAME} (v{SCRIPT_VERS})'
 
     # Record the types of both parts - text/plain and text/html.
     part1 = Message()
@@ -395,372 +460,517 @@ def sendMessage(SETTINGS, msg_to, subject, msg_text, msg_html, count, count_err,
     message.attach(part2)
     msg_full = message.as_string()
 
-    writeConsoleAndLog(4, "\n{0}\nMessage Content:\n\n{1}\n".format('-' * 79, msg_full,))
+    Writer.ConsoleAndLog(4, f"\n{DASH_LINE}\nMessage Content:\n\n{msg_full}\n")
 
     # Here is the section that actually processes and sends the mail
     count += 1
-    if (count < 2):
-        writeConsoleAndLog(2, "\nSending mail to {0} recipients:".format(count_max))
-    print_text = ("{0:>5}.  {1}  ".format(count, msg_to,) + ' ' * 61)[:61] + ' '
-    if (SETTINGS['DISPLAY_LEVEL'] > 1):
+    if count < 2:
+        Writer.ConsoleAndLog(2, f"\nSending mail to {count_max} recipients:")
+    print_text = f"{count:>5}.  {msg_to}{' ' * 61}  "[:61] + ' '
+    if Settings.DISPLAY_LEVEL > 1:
         print(print_text, end="", flush=True)
     try:
-        server = smtplib.SMTP("{0}:{1}".format(SETTINGS['MAIL_SERV'], SETTINGS['MAIL_PORT'],))
+        server = smtplib.SMTP(f"{Settings.MAIL_SERV}:{Settings.MAIL_PORT}")
         server.starttls()
-        server.login(SETTINGS['MAIL_SERV_LOGON_ID'], SETTINGS['MAIL_SERV_LOGON_PW'])
-    except Exception:
-        if (SETTINGS['DISPLAY_LEVEL'] > 1):
+        server.login(Settings.MAIL_SERV_LOGON_ID, Settings.MAIL_SERV_LOGON_PW)
+        return_value = server.sendmail(Settings.MAIL_FROM_ADDR, [msg_to,], msg_full.replace('\r\n', '\n').replace('\n', '\r\n').encode('UTF-8'))
+    except Exception as ex:
+        if (Settings.DISPLAY_LEVEL > 1):
             print("Failure")
-        errorAndExit(114)
-    return_value = server.sendmail(SETTINGS['MAIL_FROM_ADDR'], [msg_to,], msg_full.encode('UTF-8'))
+        errorAndExit(114, extraText=f"\nException: {ex}")
     if return_value:
         count_err += 1
     server.quit()
-    if (SETTINGS['DISPLAY_LEVEL'] > 1):
+    if Settings.DISPLAY_LEVEL > 1:
         print("Failure" if return_value else "Success")
-    writeLog(2, print_text + ("Failure" if return_value else "Success"))
+    Writer.Log(2, print_text + ("Failure" if return_value else "Success"))
     if count < count_max:
-        time.sleep(SETTINGS['MAIL_WAIT'])
+        time.sleep(Settings.MAIL_WAIT)
     return (count, count_err)
 
 
-###############################################
-#   Set up command line argument processing   #
-###############################################
+##############################################################################
 
-# TODO: enable sending to Cc: and Bcc: addresses
-arg_parser = argparse.ArgumentParser(description="{0} (v{1})\nSends the same email message individually to multiple recipients.".format(SCRIPT_NAME, SCRIPT_VERS,),
-    usage="'bulkmail.py --help'  or  'bulkmail.py -c command [options]'"
-)
-arg_parser.add_argument("-c", "--cmd", help="The processing command 'send' or 'test'.", metavar='CMD', choices=['send', 'test',])
-group0 = arg_parser.add_mutually_exclusive_group()
-group0.add_argument("-a", "--confirm", help="Request confirmation on actions or warnings.", action='store_true')
-group0.add_argument("-A", "--no-confirm", help="Don't request confirmation on actions or warnings.", action='store_true')
-arg_parser.add_argument("--addr-file", help="The file containing a list of destination addresses in CSV format with the first row containing the column names.",
-    metavar='FILE', dest='MAIL_ADDRESS_FILE')
-# group1 = arg_parser.add_mutually_exclusive_group()
-# group1.add_argument("-b", "--send-bcc", help="Include the Bcc: address(es).", action='store_true')
-# group1.add_argument("-B", "--no-bcc", help="Do not include the Bcc: address(es).", action='store_true')
-# arg_parser.add_argument("--bcc", help="Set the Bcc: address(es).  Multiple addresses are separated by spaces.", metavar='ADD', nargs='+')
-# group2 = arg_parser.add_mutually_exclusive_group()
-# group2.add_argument("-c", "--send-cc", help="Include the Cc: address(es).", action='store_true')
-# group2.add_argument("-C", "--no-cc", help="Do not include the Cc: address(es)", action='store_true')
-# arg_parser.add_argument("--cc", help="Set the Cc: address(es).  Multiple addresses are separated by spaces", metavar='ADD', nargs='+')
-arg_parser.add_argument("--config-file", help="The file containing the configuration information.  Defaults to bulkmail.cfg in the current directory.",
-    metavar='FILE')
-arg_parser.add_argument("--display-level", help="The amount of information to write to the display.  0=no display (also implies -A) to 3=display everything (debug)",
-    metavar='NUM', choices=['0', '1', '2', '3',], dest='DISPLAY_LEVEL')
-arg_parser.add_argument("--email", help="Set the template to use to build the destination email addresses from the fields in the CSV file. (e.g.: {first_name} {last_name} <{email}>)",
-    metavar='TEMPLATE', dest='ADDRESS_TEMPLATE')
-arg_parser.add_argument("--from", help="Set the From: address.", metavar='ADDR', dest='MAIL_FROM_ADDR')
-arg_parser.add_argument("--log-file", help="The file to write the session logs.  Defaults to bulkmail.log in the current directory.",
-    metavar='FILE', dest='LOG_FILE')
-arg_parser.add_argument("--log-level", help="The amount of information to write to the log file.  0=no logging to 4=log everything (extreme debug)",
-    metavar='NUM', choices=['0', '1', '2', '3', '4',], dest='LOG_LEVEL')
-arg_parser.add_argument("--message", help="The file containing the message (in markdown format) to send.  " +
-    "The first line contains the message subject formatted as a Header 1. (e.g.: # This is the Subject)",
-    metavar='FILE', dest='MAIL_MESSAGE_FILE')
-group3 = arg_parser.add_mutually_exclusive_group()
-group3.add_argument("-f", "--footer", help="Include a footer on the message showing the program used.", action='store_true')
-group3.add_argument("-F", "--no-footer", help="Don't include a footer on the message showing the program used.", action='store_true')
-group4 = arg_parser.add_mutually_exclusive_group()
-group4.add_argument("-r", "--send-reply", help="Include the Reply-To address.", action='store_true')
-group4.add_argument("-R", "--no-reply", help="Do not include the Reply-To address.", action='store_true')
-arg_parser.add_argument("--reply", help="Set the Reply-To: address.", metavar='ADDR', dest='MAIL_REPLY_ADDR')
-arg_parser.add_argument("--server-url", help="The URL of the mail server. (e.g.: smtp.myserver.com)", metavar='URL', dest='MAIL_SERV')
-arg_parser.add_argument("--server-port", help="The port to use on the mail server. (e.g.: 587)", type=int, metavar='PORT', dest='MAIL_PORT')
-arg_parser.add_argument("--subject", help="The message subject line.")
-arg_parser.add_argument("--wait", help="Number of seconds to wait between sending messages.", type=int, metavar='SECONDS', dest='MAIL_WAIT')
-group5 = arg_parser.add_mutually_exclusive_group()
-group5.add_argument("--warranty", help="Show the warranty information and exit.", action='store_true')
-#group5.add_argument("--redistribution", help="Show the conditions for redistribution and exit.", action='store_true')
-args = arg_parser.parse_args()
+def parse_address_file(addr_file):
+    """Read the addresses CSV file.
+
+    Args:
+        addr_file (str): Name of CSV file to read
+
+    Returns:
+        tuple: address list list, address fields list
+    """
+    addr_list = []
+    addr_fields = []
+    with open(addr_file, newline='', encoding="UTF-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            addr_list.append(row,)
+        addr_fields = reader.fieldnames
+
+    return addr_list, addr_fields
 
 
-#############################################################
-#   Read updated default settings from configuration file   #
-#############################################################
+##############################################################################
 
-if args.warranty:
-    print(COPYRIGHT_TEXT)
-    print(WARRANTY_TEXT)
-    quit(0)
+def parse_command_line():
+    """Parse the command line arguments.
+    """
 
-# if args.redistribution:
-#     print(REDISTRIBUTION_TEXT)
-#     quit(0)
+    # TODO: enable sending to Cc: and Bcc: addresses
+    arg_parser = argparse.ArgumentParser(
+        description=f"{SCRIPT_NAME} (v{SCRIPT_VERS})\nSends the same email message individually to multiple recipients.",
+        usage="'bulkmail.py --help'  or  'bulkmail.py -c command [options]'",
+    )
+    arg_parser.add_argument(
+        "-c",
+        "--cmd",
+        help="The processing command 'send' or 'test'.",
+        metavar='CMD',
+        choices=['send', 'test'],
+    )
+    group0 = arg_parser.add_mutually_exclusive_group()
+    group0.add_argument(
+        "-a",
+        "--confirm",
+        help="Request confirmation on actions or warnings.",
+        action='store_true',
+    )
+    group0.add_argument(
+        "-A",
+        "--no-confirm",
+        help="Don't request confirmation on actions or warnings.",
+        action='store_true',
+    )
+    arg_parser.add_argument(
+        "--addr-file",
+        help="The file containing a list of destination addresses in CSV format with the first row containing the column names.",
+        metavar='FILE',
+        dest='MAIL_ADDRESS_FILE',
+    )
+    # group1 = arg_parser.add_mutually_exclusive_group()
+    # group1.add_argument("-b", "--send-bcc", help="Include the Bcc: address(es).", action='store_true')
+    # group1.add_argument("-B", "--no-bcc", help="Do not include the Bcc: address(es).", action='store_true')
+    # arg_parser.add_argument("--bcc", help="Set the Bcc: address(es).  Multiple addresses are separated by spaces.", metavar='ADD', nargs='+')
+    # group2 = arg_parser.add_mutually_exclusive_group()
+    # group2.add_argument("-c", "--send-cc", help="Include the Cc: address(es).", action='store_true')
+    # group2.add_argument("-C", "--no-cc", help="Do not include the Cc: address(es)", action='store_true')
+    # arg_parser.add_argument("--cc", help="Set the Cc: address(es).  Multiple addresses are separated by spaces", metavar='ADD', nargs='+')
+    arg_parser.add_argument(
+        "--config-file",
+        help="The file containing the configuration information.  Defaults to bulkmail.cfg in the current directory.",
+        metavar='FILE',
+    )
+    arg_parser.add_argument(
+        "--display-level",
+        help="The amount of information to write to the display.  0=no display (also implies -A) to 3=display everything (debug)",
+        metavar='NUM',
+        choices=['0', '1', '2', '3',],
+        dest='DISPLAY_LEVEL',
+    )
+    arg_parser.add_argument(
+        "--email",
+        help="Set the template to use to build the destination email addresses from the fields in the CSV file. (e.g.: {first_name} {last_name} <{email}>)",
+        metavar='TEMPLATE',
+        dest='ADDRESS_TEMPLATE',
+    )
+    arg_parser.add_argument(
+        "--from",
+        help="Set the From: address.",
+        metavar='ADDR',
+        dest='MAIL_FROM_ADDR',
+    )
+    arg_parser.add_argument(
+        "--log-file",
+        help="The file to write the session logs.  Defaults to bulkmail.log in the current directory.",
+        metavar='FILE',
+        dest='LOG_FILE',
+    )
+    arg_parser.add_argument(
+        "--log-level",
+        help="The amount of information to write to the log file.  0=no logging to 4=log everything (extreme debug)",
+        metavar='NUM',
+        choices=['0', '1', '2', '3', '4'],
+        dest='LOG_LEVEL',
+    )
+    arg_parser.add_argument(
+        "--message",
+        help=(
+                "The file containing the message (in markdown format) to send.  "
+                "The first line contains the message subject formatted as a Header 1. (e.g.: # This is the Subject)"
+            ),
+        metavar='FILE',
+        dest='MAIL_MESSAGE_FILE',
+    )
+    group3 = arg_parser.add_mutually_exclusive_group()
+    group3.add_argument(
+        "-f",
+        "--footer",
+        help="Include a footer on the message showing the program used.",
+        action='store_true',
+    )
+    group3.add_argument(
+        "-F",
+        "--no-footer",
+        help="Don't include a footer on the message showing the program used.",
+        action='store_true',
+    )
+    group4 = arg_parser.add_mutually_exclusive_group()
+    group4.add_argument(
+        "-r",
+        "--send-reply",
+        help="Include the Reply-To address.",
+        action='store_true',
+    )
+    group4.add_argument(
+        "-R",
+        "--no-reply",
+        help="Do not include the Reply-To address.",
+        action='store_true',
+    )
+    arg_parser.add_argument(
+        "--reply",
+        help="Set the Reply-To: address.",
+        metavar='ADDR',
+        dest='MAIL_REPLY_ADDR',
+    )
+    arg_parser.add_argument(
+        "--server-url",
+        help="The URL of the mail server. (e.g.: smtp.myserver.com)",
+        metavar='URL',
+        dest='MAIL_SERV',
+    )
+    arg_parser.add_argument(
+        "--server-port",
+        help="The port to use on the mail server. (e.g.: 587)",
+        type=int,
+        metavar='PORT',
+        dest='MAIL_PORT',
+    )
+    arg_parser.add_argument(
+        "--subject",
+        help="The message subject line.",
+    )
+    arg_parser.add_argument(
+        "--wait",
+        help="Number of seconds to wait between sending messages.",
+        type=int,
+        metavar='SECONDS',
+        dest='MAIL_WAIT',
+    )
+    group5 = arg_parser.add_mutually_exclusive_group()
+    group5.add_argument(
+        "--warranty",
+        help="Show the warranty information and exit.",
+        action='store_true',
+    )
+    # group5.add_argument(
+    #     "--redistribution",
+    #     help="Show the conditions for redistribution and exit.",
+    #     action='store_true',
+    # )
 
-if not args.cmd:
-    SETTINGS['LOG_LEVEL'] = 0
-    errorAndExit(100)
-
-if args.config_file:
-    config_file = args.config_file
-else:
-    config_file = ""
-if not config_file:
-    config_file = 'bulkmail.cfg'
-
-if (not SETTINGS['LOG_FILE']):
-    SETTINGS['LOG_FILE'] = 'bulkmail.log'
-
-if not os.path.isfile(config_file):
-    errorAndExit(101, extraText="File: {0}".format(config_file,))
-
-with open(config_file, 'rt', encoding='UTF-8', newline=None) as f:
-    for line in f:
-        line = line.strip()
-        if (line) and (line[:1] != '#'):
-            key, value = line.split('=', 2)
-            saveSetting(SETTINGS, key, value, True)
+    args = arg_parser.parse_args()
+    return args
 
 
-###################################################
-#   Update settings from command line arguments   #
-###################################################
+##############################################################################
 
-for arg in vars(args):
-    if getattr(args, arg) is not None:
-        saveSetting(SETTINGS, arg, getattr(args, arg), False)
+def main():
+    """Main processing.
+    """
 
-if args.send_reply:
-    SETTINGS['SEND_REPLY'] = True
+    Writer.INITIALIZING = True
 
-if args.no_reply:
-    SETTINGS['SEND_REPLY'] = False
+    args = parse_command_line()
 
-if args.confirm:
-    SETTINGS['NO_CONFIRM'] = False
+    if args.warranty:
+        print(COPYRIGHT_TEXT)
+        print(WARRANTY_TEXT)
+        quit(0)
 
-if args.no_confirm:
-    SETTINGS['NO_CONFIRM'] = True
+    # if args.redistribution:
+    #     print(REDISTRIBUTION_TEXT)
+    #     quit(0)
 
-if args.footer:
-    SETTINGS['NO_FOOTER'] = False
+    if not args.cmd:
+        Settings.LOG_LEVEL = 0
+        errorAndExit(100)
 
-if args.no_footer:
-    SETTINGS['NO_FOOTER'] = True
+    if args.config_file:
+        config_file = args.config_file
+    else:
+        config_file = ""
+    if not config_file:
+        config_file = 'bulkmail.cfg'
 
-
-#################################
-#   Validate logging settings   #
-#################################
-
-if (SETTINGS['LOG_LEVEL'] > 0) and (not SETTINGS['LOG_FILE']):
-    errorAndExit(117, extraText="Filename: '{0}'".format(SETTINGS['LOG_FILE'],))
-
-
-###################################################
-#   Initialization compolete - begin processing   #
-###################################################
-
-INITIALIZING = False
-
-writeConsole(1, COPYRIGHT_TEXT)
-
-writeConsoleAndLog(1, "\n{0}\n\nBegin Bulk Mail processing session.\n".format('=' * 79,))
-print_text = "{0}".format(args,)
-print_text = textwrap.fill(print_text, 78)
-writeConsoleAndLog(3, "\nCommand Line Args:\n\n{0}\n".format(print_text,))
-
-print_text = ''
-for key in SETTINGS:
-    print_text += "  Key: {0:<24}Value: '{1}'\n".format(key, SETTINGS[key],)
-writeConsoleAndLog(3, "\nSettings:\n\n{0}\n{1}\n".format(print_text, '-' * 79,))
+    if not os.path.isfile(config_file):
+        errorAndExit(101, extraText=f"File: {config_file}")
 
 
-###############################################
-#   Read the address list from the CSV file   #
-###############################################
+    #############################################################
+    #   Read updated default settings from configuration file   #
+    #############################################################
 
-addr_file = SETTINGS['MAIL_ADDRESS_FILE']
-if (not addr_file) or (not os.path.isfile(addr_file)):
-    errorAndExit(105, extraText="File: {0}".format(addr_file,))
-addr_list = []
-addr_fields = []
-with open(addr_file, newline='', encoding="UTF-8") as csvfile:
-    reader = csv.DictReader(csvfile)
-    for row in reader:
-        addr_list.append(row,)
-    addr_fields = reader.fieldnames
-
-writeConsoleAndLog(3, "\nAddress CSV Fields: {0}\n\n{1}\n".format(addr_fields, '-' * 79,))
-
-if not addr_list:
-    errorAndExit(107)
+    with open(config_file, 'rt', encoding='UTF-8', newline=None) as f:
+        for line in f:
+            line = line.strip()
+            if (line) and (line[:1] != '#'):
+                key, value = line.split('=', 2)
+                saveSetting(key, value, True)
 
 
-###########################################################################
-#   Verify that the address template fields are in the address CSV file   #
-###########################################################################
+    ###################################################
+    #   Update settings from command line arguments   #
+    ###################################################
 
-if not SETTINGS['ADDRESS_TEMPLATE']:
-    errorAndExit(109)
-template_fields = re.findall(RE_MAIL_ADD, SETTINGS['ADDRESS_TEMPLATE'])
+    for arg in vars(args):
+        if getattr(args, arg) is not None:
+            saveSetting(arg, getattr(args, arg), False)
 
-if template_fields:
+    if args.send_reply:
+        Settings.SEND_REPLY = True
+
+    if args.no_reply:
+        Settings.SEND_REPLY = False
+
+    if args.confirm:
+        Settings.NO_CONFIRM = False
+
+    if args.no_confirm:
+        Settings.NO_CONFIRM = True
+
+    if args.footer:
+        Settings.NO_FOOTER = False
+
+    if args.no_footer:
+        Settings.NO_FOOTER = True
+
+
+    #################################
+    #   Validate logging settings   #
+    #################################
+
+    if Settings.LOG_LEVEL > 0 and not (Settings.LOG_FILE and os.path.isfile(Settings.LOG_FILE)):
+        errorAndExit(117, extraText=f"Filename: \"{Settings.LOG_FILE}\"")
+
+
+    ##################################################
+    #   Initialization complete - begin processing   #
+    ##################################################
+
+    Writer.INITIALIZING = False
+
+    Writer.Console(1, COPYRIGHT_TEXT)
+
+    Writer.ConsoleAndLog(1, f"\n{'=' * 79}\n\nBegin Bulk Mail processing session.\n")
+    print_text = textwrap.fill(f"{args}", 78)
+    Writer.ConsoleAndLog(3, f"\nCommand Line Args:\n\n{print_text}\n")
+
+    print_text = ''
+    for key, value in Settings.__dict__.items():
+        if not key[0] == '_':
+            print_text += f"  Key: {key:<24}Value: '{value}'\n"
+    Writer.ConsoleAndLog(3, f"\nSettings:\n\n{print_text}\n{DASH_LINE}\n")
+
+
+    ###############################################
+    #   Read the address list from the CSV file   #
+    ###############################################
+
+    addr_file = Settings.MAIL_ADDRESS_FILE
+    if not (addr_file and os.path.isfile(addr_file)):
+        errorAndExit(105, extraText=f"File: {addr_file}")
+
+    addr_list, addr_fields = parse_address_file(addr_file)
+
+    Writer.ConsoleAndLog(3, f"\nAddress CSV Fields: {addr_fields}\n\n{DASH_LINE}\n")
+
+    if not addr_list:
+        errorAndExit(107)
+
+
+    ###########################################################################
+    #   Verify that the address template fields are in the address CSV file   #
+    ###########################################################################
+
+    if not Settings.ADDRESS_TEMPLATE:
+        errorAndExit(109)
+
+    template_fields = re.findall(RE_MAIL_ADD, Settings.ADDRESS_TEMPLATE)
+
+    if not template_fields:
+        errorAndExit(110)
+
     for addr_field in template_fields:
         if not (addr_field in addr_fields):
-            errorAndExit(111, extraText="Field: '{0}'".format(addr_field,))
-else:
-    errorAndExit(110)
+            errorAndExit(111, extraText=f"Field: '{addr_field}'")
 
-writeConsoleAndLog(3, "\nAddress Template Fields: {0}\n\n{1}\n".format(template_fields, '-' * 79,))
+    Writer.ConsoleAndLog(3, f"\nAddress Template Fields: {template_fields}\n\n{DASH_LINE}\n")
 
 
-####################################################
-#   Read the mail message from the markdown file   #
-####################################################
+    ####################################################
+    #   Read the mail message from the markdown file   #
+    ####################################################
 
-msg_file = SETTINGS['MAIL_MESSAGE_FILE']
-if (not msg_file) or (not os.path.isfile(msg_file)):
-    errorAndExit(112, extraText="File: {0}".format(msg_file,))
-with open(msg_file, newline=None, encoding="UTF-8") as msgfile:
-    TEXT = msgfile.read()
+    msg_file = Settings.MAIL_MESSAGE_FILE
+    if not (msg_file and os.path.isfile(msg_file)):
+        errorAndExit(112, extraText=f"File: {msg_file}")
 
-
-#######################################################
-#   Extract the subject line from the markdown file   #
-#######################################################
-
-subject = ''
-matches = RE_SUBJ_GET.match(TEXT)
-if matches:
-    subject = RE_HEADERS.sub('', matches.group(0).strip())
-
-if subject:
-    TEXT = RE_SUBJ_DEL.sub('', TEXT)
-else:
-    subject = 'No subject'
-
-if args.subject:
-    subject = args.subject
-
-writeConsoleAndLog(3, "\nMessage Subject:  {0}\n\n{1}\n".format(subject, '-' * 79,))
+    with open(msg_file, newline=None, encoding="UTF-8") as msgfile:
+        text = msgfile.read()
 
 
-#############################################
-#   Verify remaining message is not empty   #
-#############################################
+    #######################################################
+    #   Extract the subject line from the markdown file   #
+    #######################################################
 
-if RE_BLANK_MSG.search(TEXT):
-    errorAndExit(113)
+    subject = ''
+    matches = RE_SUBJ_GET.match(text)
+    if matches:
+        subject = RE_HEADERS.sub('', matches.group(0).strip())
 
-writeConsoleAndLog(3, "\nMarkdown Message:\n\n{0}\n\n{1}\n".format(TEXT, '-' * 79,))
+    if subject:
+        text = RE_SUBJ_DEL.sub('', text)
+    else:
+        subject = 'No subject'
 
+    if args.subject:
+        subject = args.subject
 
-##############################################################################
-#   Extract list of replaceable parameter fields from the message template   #
-##############################################################################
-
-msg_fields = re.findall(RE_MAIL_ADD, TEXT)
-if msg_fields:
-    for msg_field in msg_fields:
-        if not (msg_field in addr_fields):
-            warning_text = "{0}  Field: '{1}'".format(ERRORS[116], msg_field,)
-            writeLog(1, warning_text)
-            confirmAction(SETTINGS, warning_text)
+    Writer.ConsoleAndLog(3, f"\nMessage Subject:  {subject}\n\n{DASH_LINE}\n")
 
 
-####################################################################
-#   Parse the markdown message template to produce HTML template   #
-####################################################################
+    #############################################
+    #   Verify remaining message is not empty   #
+    #############################################
 
-parser = commonmark.Parser()
-ast = parser.parse(TEXT)
+    if RE_BLANK_MSG.search(text):
+        errorAndExit(113)
 
-renderer = commonmark.HtmlRenderer()
-html = renderer.render(ast)
-
-# inspecting the abstract syntax tree
-# json = commonmark.dumpJSON(ast)
-# commonmark.dumpAST(ast) # pretty print generated AST structure
-
-# html += "\n<hr>\n<sub>Sent using {0} (v{1}).</sub>\n".format(SCRIPT_NAME, SCRIPT_VERS,)
-
-writeConsoleAndLog(3, "\nHTML Message Template:\n\n{0}\n\n{1}\n".format(html, '-' * 79,))
+    Writer.ConsoleAndLog(3, f"\nMarkdown Message:\n\n{text}\n\n{DASH_LINE}\n")
 
 
-######################################################################
-#   Parse the HTML message template to produce plain text template   #
-######################################################################
+    ##############################################################################
+    #   Extract list of replaceable parameter fields from the message template   #
+    ##############################################################################
 
-text_maker = html2text.HTML2Text()
-text_maker.ignore_links = False
-text_maker.bypass_tables = False
-text_maker.ignore_emphasis = True
-text_maker.skip_internal_links = True
-text_maker.mark_code = False
-text_maker.protect_links = True
-text_maker.body_width = 78
-text = text_maker.handle(html)
-text = RE_HEADERS.sub('', text)
+    msg_fields = re.findall(RE_MAIL_ADD, text)
+    if msg_fields:
+        for msg_field in msg_fields:
+            if not (msg_field in addr_fields):
+                warning_text = f"{ERRORS[116]}  Field: '{msg_field}'"
+                Writer.Log(1, warning_text)
+                confirmAction(warning_text)
 
-matches = RE_TEXT_LINKS.search(text)
-while matches:
-    (link_text, link_url) = matches.groups()
-    text = text.replace("[{0}]".format(link_text,), link_text)
-    text = text.replace("(<{0}>)".format(link_url,), " <{0}>".format(link_url,))
+
+    ####################################################################
+    #   Parse the markdown message template to produce HTML template   #
+    ####################################################################
+
+    parser = commonmark.Parser()
+    ast = parser.parse(text)
+
+    renderer = commonmark.HtmlRenderer()
+    html = renderer.render(ast)
+
+    # inspecting the abstract syntax tree
+    # json = commonmark.dumpJSON(ast)
+    # commonmark.dumpAST(ast) # pretty print generated AST structure
+
+    # html += "\n<hr>\n<sub>Sent using {0} (v{1}).</sub>\n".format(SCRIPT_NAME, SCRIPT_VERS,)
+
+    Writer.ConsoleAndLog(3, f"\nHTML Message Template:\n\n{html}\n\n{DASH_LINE}\n")
+
+
+    ######################################################################
+    #   Parse the HTML message template to produce plain text template   #
+    ######################################################################
+
+    text_maker = html2text.HTML2Text()
+    text_maker.ignore_links = False
+    text_maker.bypass_tables = False
+    text_maker.ignore_emphasis = True
+    text_maker.skip_internal_links = True
+    text_maker.mark_code = False
+    text_maker.protect_links = True
+    text_maker.body_width = 78
+    text = text_maker.handle(html)
+    text = RE_HEADERS.sub('', text)
+
     matches = RE_TEXT_LINKS.search(text)
+    while matches:
+        (link_text, link_url) = matches.groups()
+        text = text.replace(f"[{link_text}]", link_text)
+        text = text.replace(f"(<{link_url}>)", f" <{link_url}>")
+        matches = RE_TEXT_LINKS.search(text)
 
-writeConsoleAndLog(3, "\nPlain Text Message Template:\n\n{0}\n\n{1}\n".format(text, '-' * 79,))
+    text = text.replace('<\\', '<')
+
+    Writer.ConsoleAndLog(3, f"\nPlain Text Message Template:\n\n{text}\n\n{DASH_LINE}\n")
 
 
-#########################################################################
-#   At this point we have final plain text and HTML message templates   #
-#########################################################################
+    #########################################################################
+    #   At this point we have final plain text and HTML message templates   #
+    #########################################################################
 
-####################################
-#   Begin the message processing   #
-####################################
+    ####################################
+    #   Begin the message processing   #
+    ####################################
 
-writeConsoleAndLog(3, "\nProcessing Command: {0}\n\n{1}\n".format(args.cmd, '-' * 79,))
+    Writer.ConsoleAndLog(3, f"\nProcessing Command: {args.cmd}\n\n{DASH_LINE}\n")
 
-count = 0
-count_err = 0
-if args.cmd == 'send':
-    # Sends the email message to the list of recipients from the CSV file
-    count_max = len(addr_list)
-    if confirmAction(SETTINGS, "You are about to send {0} message(s).".format(count_max,)):
-        for address_line in addr_list:
-            # Process each address in the list
-            writeConsoleAndLog(3, "\nAddress Line from CSV: {0}\n".format(address_line,))
-            msg_text = text
-            msg_html = html
-            msg_to = SETTINGS['ADDRESS_TEMPLATE']
-            writeConsoleAndLog(3, "Address and Message Body Replacements:\n")
-            for search_field in addr_fields:
-                # Fill in replaceable parameters in the message body for both HTML and plain text
-                old_text = '{' + search_field + '}'
-                new_text = address_line[search_field]
-                msg_text = msg_text.replace(old_text, new_text)
-                msg_html = msg_html.replace(old_text, new_text)
-                # Fill in replaceable parameters in the address template to create the To: address
-                msg_to = msg_to.replace(old_text, new_text)
-                writeConsoleAndLog(3, "  Search: {0:<30}   Replace: \"{1}\"".format('"' + old_text + '"', new_text,))
-            writeConsoleAndLog(3, "")
+    count = 0
+    count_err = 0
+    if args.cmd == 'send':
+        # Sends the email message to the list of recipients from the CSV file
+        count_max = len(addr_list)
+        if confirmAction(f"You are about to send {count_max} message{'' if count_max == 1 else 's'}."):
+            for address_line in addr_list:
+                # Process each address in the list
+                Writer.ConsoleAndLog(3, f"\nAddress Line from CSV: {address_line}\n")
+                msg_text = text
+                msg_html = html
+                msg_to = Settings.ADDRESS_TEMPLATE
+                Writer.ConsoleAndLog(3, "Address and Message Body Replacements:\n")
+                for search_field in addr_fields:
+                    # Fill in replaceable parameters in the message body for both HTML and plain text
+                    old_text = '{' + search_field + '}'
+                    new_text = address_line[search_field]
+                    msg_text = msg_text.replace(old_text, new_text)
+                    msg_html = msg_html.replace(old_text, new_text)
+                    # Fill in replaceable parameters in the address template to create the To: address
+                    msg_to = msg_to.replace(old_text, new_text)
+                    junk = f'"{old_text}"'
+                    Writer.ConsoleAndLog(3, f"  Search: {junk:<30}   Replace: \"{new_text}\"")
+                Writer.ConsoleAndLog(3, "")
+                # Send the email message to the specified address
+                (count, count_err) = sendMessage(msg_to, subject, msg_text, msg_html, count, count_err, count_max)
+    else:
+        # Sends the email template message to the MAIL_FROM_ADDR
+        count_max = 1
+        if confirmAction("You are about to send 1 message."):
+            msg_to = Settings.MAIL_FROM_ADDR
             # Send the email message to the specified address
-            (count, count_err) = sendMessage(SETTINGS, msg_to, subject, msg_text, msg_html, count, count_err, count_max)
-else:
-    # Sends the email template message to the MAIL_FROM_ADDR
-    count_max = 1
-    if confirmAction(SETTINGS, "You are about to send {0} message(s).".format(count_max,)):
-        msg_to = SETTINGS['MAIL_FROM_ADDR']
-        # Send the email message to the specified address
-        (count, count_err) = sendMessage(SETTINGS, msg_to, subject, text, html, count, count_err, count_max)
+            (count, count_err) = sendMessage(msg_to, subject, text, html, count, count_err, count_max)
 
 
-#############################################################
-#   Processing complete - quit with appropriate exit code   #
-#############################################################
+    #############################################################
+    #   Processing complete - quit with appropriate exit code   #
+    #############################################################
 
-writeConsoleAndLog(1, "\nMail processing complete.  Sent {0} of {1} message(s), with {2} failures.\n\n".format(count_max - count_err, count_max, count_err,))
+    Writer.ConsoleAndLog(1, f"\nMail processing complete.  Sent {count_max - count_err} of {count_max} message{'' if count_max == 1 else 's'}, with {count_err} failure{'' if count_err == 1 else 's'}.\n\n")
 
-if (count_err > 0):
-    errorAndExit(115)
+    if count_err > 0:
+        errorAndExit(115)
 
-quit(0)
+    quit(0)
 
+
+##############################################################################
+
+if __name__ == '__main__':
+    main()
 
 #################################
 #   End of bulkmail.py script   #

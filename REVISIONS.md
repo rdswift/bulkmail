@@ -1,5 +1,14 @@
 # Bulk Mail Revision History
 
+## Version 0.06 (2024-01-12)
+
+- Fix backslash being added after '<' in plain text message.
+- Add `Settings` class to hold option settings
+- Add `Writer` class to handle console and log output
+- Add `main` method
+- Remove unnecessary brackets from `if` statements
+- Correct typo in README.md
+
 ## Version 0.06 (2019-07-31)
 
 - Add a message header indicating the version of the program used.
